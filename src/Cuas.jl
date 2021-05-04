@@ -1,7 +1,12 @@
 module Cuas
-
+using ExternalBallistics
+using HCubature
 # Write your package code here.
-include("phit.jl")
-using .phit
+include("types.jl")
+include("roundPerRound.jl")
+#include("phit.jl")
+#using .phit
+
+export pHit, RectErrorB
 
 end

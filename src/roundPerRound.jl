@@ -1,33 +1,28 @@
-module roundPerRound
-using ExternalBallistics
-using QuadGK
-
-export pHit
+#module roundPerRound
 
 function σtot(σ::Float64,ρ::Float64)
     ρ*σ*1e-3
 end
 
-function SSHP(projectile::Projectile1D, target::Target1D)
+function SSHP(projectile::Projectile1D, target::TargetCirc)
     D = abs(projectile.position-target.position)
     Stot=σtot(projectile.σ,D)
-    y = (x)->x/Stot^2*exp(-0.5*x^2/Stot^2)
-    g=quadgk(y,0,0.5*target.size)[1]
+    y = (x)->x[1]/Stot^2*exp(-0.5*x[1]^2/Stot^2)
+    g=hcubature(y,0,0.5*target.ρ)[1]
+    return g
+end
+
+function SSHP(target::TargetRect,error::RectErrorB)
+    #D = abs(projectile.position-target.position)
+    y = x->1/(sqrt(2*pi)*error.σ_x)*exp(-((x[1]-error.μ_x)^2)/(2*error.σ_x^2))*1/(sqrt(2*pi)*error.σ_y)*exp(-((x[2]-error.μ_y)^2)/(2*error.σ_y^2))
+    g=hcubature(y,[-target.a,-target.b],[target.a, target.b])[1]
     return g
 end
 
 
-function pHit(projectile::Projectile1D,target::Target1D;HIT_PROBABILITY=0.95, MAX_BURST_SIZE = 150)
-    Pnhit=1.0
-    burst=0
+function pHit(target::AbstractTarget, error::RectErrorB)
+    SSHP(target, error)
 
-while (1-Pnhit) < HIT_PROBABILITY && burst<MAX_BURST_SIZE
-        Phiti =  SSHP(projectile,target)
-        Pnhit=Pnhit*(1-Phiti)
-        burst=burst+1
 
 end
-return 1-Pnhit, burst
-
-end
-end
+#end
