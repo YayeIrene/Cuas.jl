@@ -19,10 +19,15 @@ function SSHP(target::TargetRect,error::RectErrorB)
     return g
 end
 
+"""
+    pHit(target,error)
 
+Returns the probability of hitting the target defined by'target' if the estimated error is provided by 'error'.
+```math
+x^2 + y^2 
+```
+"""
 function pHit(target::AbstractTarget, error::RectErrorB)
     SSHP(target, error)
-
-
 end
 #end
