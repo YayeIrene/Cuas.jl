@@ -24,10 +24,12 @@ end
 
 Returns the probability of hitting the target defined by'target' if the estimated error is provided by 'error'.
 ```math
-x^2 + y^2 
+\\int_{-a}^{a}\\int_{-b}^{b}\\frac{1}{2\\pi\\sigma_x\\sigma_y}\\text{exp}[\\frac{(x-\\mu_x)^2}{2\\sigma_x^2}\\frac{(y-\\mu_y)^2}{2\\sigma_y^2}]dxdy
 ```
 """
 function pHit(target::AbstractTarget, error::RectErrorB)
     SSHP(target, error)
 end
 #end
+#\\[\\frac{(x-\\mu_x)^2}{2\\sigma_x^2}
+#+\\frac{(y-\\mu_y)^2}{2\\sigma_y^2}\\]dxdy\$
