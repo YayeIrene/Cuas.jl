@@ -7,7 +7,7 @@ include("roundPerRound.jl")
 #include("phit.jl")
 #using .phit
 
-export pHit, RectErrorB
+export pHit, RectErrorB, Gun
 
 
 end
