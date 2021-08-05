@@ -4,7 +4,7 @@ function σtot(σ::Float64,ρ::Float64)
     ρ*σ*1e-3
 end
 
-function SSHP(projectile::Projectile1D, target::TargetCirc)
+function SSHP(projectile::AbstractPenetrator, target::TargetCirc)
     D = abs(projectile.position-target.position)
     Stot=σtot(projectile.σ,D)
     y = (x)->x[1]/Stot^2*exp(-0.5*x[1]^2/Stot^2)
