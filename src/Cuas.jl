@@ -10,7 +10,8 @@ include("rotations.jl")
 #include("phit.jl")
 #using .phit
 
-export pHit, RectErrorB, Canon,createTarget, createTourelle, createCanon, createProjectile, targetPos, muzzlePos, muzzleVel, wind
+export pHit, RectErrorB, createTourelle, createProjectile, targetPos, muzzlePos, muzzleVel, wind, Tourelle,
+Hull, Turret, Canon, Sight, Tank
 
 
 end
