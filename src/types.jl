@@ -14,7 +14,9 @@ mutable struct Hull
     ψ::Union{Float64,Nothing}
     χ::Union{Float64,Nothing}
 end
-
+"""
+    The turret is defined by its azimuth angle
+"""
 mutable struct Turret
      ξ::Union{Float64,Nothing}#azimuth
 end
