@@ -6,6 +6,11 @@ Cuas is a anti aerial simulation package designed to compute efficiency of a wea
 It offers the following scenarios: stationary vs stationary, stationary vs moving, moving vs stationary and moving vs moving.
 For one on one, one on many, many on one and many on many configurations.
 
+```@repl
+using Cuas
+```
+
+
 ## Package Features
 - Hit probability
 ## Function Documentation
@@ -23,4 +28,8 @@ Turret
 
 ```@docs
 createProjectile
+```
+
+```@docs
+SSHP
 ```

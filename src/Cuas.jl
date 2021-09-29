@@ -11,7 +11,7 @@ include("rotations.jl")
 #using .phit
 
 export pHit, RectErrorB, createTourelle, createProjectile, targetPos, muzzlePos, muzzleVel, wind, Tourelle,
-Hull, Turret, Canon, Sight, Tank
+Hull, Turret, Canon, Sight, Tank, SSHP
 
 
 end

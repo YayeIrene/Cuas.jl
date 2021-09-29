@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Cuas = "5e7100d4-50d8-4520-bbe7-ebd075d2e2c0"
+
+[compat]
+Documenter = "0.27"

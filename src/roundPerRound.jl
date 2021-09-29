@@ -11,13 +11,17 @@ function SSHP(projectile::AbstractPenetrator, target::TargetCirc)
     g=hcubature(y,0,0.5*target.ρ)[1]
     return g
 end
-
+"""
+    SSHP(target,error)
+Returns the single shot hit probability (sshp) for a rectangular target.
+"""
 function SSHP(target::TargetRect,error::RectErrorB)
-    #D = abs(projectile.position-target.position)
     y = x->1/(sqrt(2*pi)*error.σ_x)*exp(-((x[1]-error.μ_x)^2)/(2*error.σ_x^2))*1/(sqrt(2*pi)*error.σ_y)*exp(-((x[2]-error.μ_y)^2)/(2*error.σ_y^2))
     g=hcubature(y,[-target.a,-target.b],[target.a, target.b])[1]
     return g
 end
+
+
 
 """
     pHit(target,error)
