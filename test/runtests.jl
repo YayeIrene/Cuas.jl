@@ -1,3 +1,4 @@
+#=
 using Cuas
 using Test
 using ExternalBallistics
@@ -12,3 +13,4 @@ using ExternalBallistics
     @test pHit(drone,ϵ)== 0.0881314035058921
 
 end
+=#
