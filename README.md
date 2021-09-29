@@ -1,6 +1,6 @@
 # Cuas
 
-[![Build Status](https://travis-ci.com/YayeIrene/Cuas.jl.svg?branch=master)](https://travis-ci.com/YayeIrene/Cuas.jl)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/YayeIrene/Cuas.jl?svg=true)](https://ci.appveyor.com/project/YayeIrene/Cuas-jl)
-[![Coverage](https://codecov.io/gh/YayeIrene/Cuas.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/YayeIrene/Cuas.jl)
-[![Coverage](https://coveralls.io/repos/github/YayeIrene/Cuas.jl/badge.svg?branch=master)](https://coveralls.io/github/YayeIrene/Cuas.jl?branch=master)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://YayeIrene.github.io/Cuas.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://YayeIrene.github.io/Cuas.jl/dev)
+[![Build Status](https://github.com/YayeIrene/WeaponSystems.jl/workflows/CI/badge.svg)](https://github.com/YayeIrene/Cuas.jl/actions)
+[![Coverage](https://codecov.io/gh/YayeIrene/WeaponSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/YayeIrene/Cuas.jl)
