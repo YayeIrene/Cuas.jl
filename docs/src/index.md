@@ -1,6 +1,13 @@
 # Cuas.jl Documentation
 
 *The anti aerial package.*
+
+## Table of contents
+
+
+```@contents
+Pages = ["index.md"]
+```
 ## Introduction
 Cuas is a anti aerial simulation package designed to compute efficiency of a weapon system against an aerial target.
 It offers the following scenarios: stationary vs stationary, stationary vs moving, moving vs stationary and moving vs moving.
@@ -13,23 +20,20 @@ using Cuas
 
 ## Package Features
 - Hit probability
-## Function Documentation
-```@docs
-pHit
+### Function documentation
+
+```@autodocs
+Modules = [Cuas]
+Order = [:function]
 ```
 
-```@docs
-createTourelle
+### Type documentation
+
+```@autodocs
+Modules = [Cuas]
+Order = [:type]
 ```
 
-```@docs
-Turret
-```
 
-```@docs
-createProjectile
-```
-
-```@docs
-SSHP
+```@index
 ```
