@@ -139,12 +139,6 @@ git-tree-sha1 = "3f71217b538d7aaee0b69ab47d9b7724ca8afa0d"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.0.4"
 
-[[Cuas]]
-deps = ["Distributions", "Documenter", "ErrorBudget", "ExternalBallistics", "HCubature", "QuadGK", "ReferenceFrameRotations", "WeaponSystems"]
-path = "C:\\Users\\PC1\\.julia\\dev\\Cuas"
-uuid = "5e7100d4-50d8-4520-bbe7-ebd075d2e2c0"
-version = "0.1.0"
-
 [[DataAPI]]
 git-tree-sha1 = "dfb3b7e89e395be1e25c2ad6d7690dc29cc53b1d"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
@@ -292,9 +286,9 @@ uuid = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 version = "1.1.0"
 
 [[ErrorBudget]]
-deps = ["Cuas", "DataFrames", "Distributions", "ExternalBallistics", "Interpolations"]
-git-tree-sha1 = "be8d182808d5d3aa257be439bf35b1c0431de418"
-repo-rev = "add-documentation"
+deps = ["DataFrames", "Distributions", "ExternalBallistics", "Interpolations", "WeaponSystems"]
+git-tree-sha1 = "d472e5a93cab68f91560e6003d1da6615bd4fdcc"
+repo-rev = "v0.2.0"
 repo-url = "C:\\Users\\PC1\\.julia\\dev\\ErrorBudget"
 uuid = "06e7a5bc-98e3-4f0e-9304-f3ab7a46b6ed"
 version = "0.1.0"
