@@ -14,7 +14,7 @@ include("rotations.jl")
 #using .phit
 
 export pHit, RectErrorB, createTourelle, createProjectile,  Tourelle,
- SSHP,CEP
+ SSHP,CEP, Target
 
 
 end
