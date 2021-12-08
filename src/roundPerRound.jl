@@ -156,3 +156,95 @@ end
 #end
 #\\[\\frac{(x-\\mu_x)^2}{2\\sigma_x^2}
 #+\\frac{(y-\\mu_y)^2}{2\\sigma_y^2}\\]dxdy\$
+
+function phitAbm(tank::Tank,t::AbstractTarget, weapon::Gun, proj::AbstractPenetrator, tVulnerable::CSGGenerator{Float64}, w::Wind,atmosphere::Air, fuze::Int64, 
+    aero::DataFrame,zones::Array{Zone,1}, shapes::Array{FragShapes,1},dfError::Dict{String, Float64},linError::Dict{String, Error};N=100,p=10)
+
+d1 = Normal(tank.hull.Φ,dfError["cant"])
+    
+x1 = rand(d1, N)
+
+d2 = Normal(0.0,dfError["cant_measurement"])
+
+x2 = rand(d2, N)
+
+dcross = Normal(w.cross,dfError["crossWind"])
+xcross = rand(dcross, N)
+
+drange = Normal(w.range,dfError["rangeWind"])
+xrange = rand(drange, N)
+
+dtarget = Normal(t.ρ,dfError["targetRange"])
+xtarget = rand(dtarget, N)
+
+dvel = Normal(weapon.u₀,dfError["muzzleVelocity"])
+xvel = rand(dvel, N)
+
+dtemp = Normal(atmosphere.t,dfError["airTemperature"])
+xtemp = rand(dtemp, N)
+
+abm = createProjectile(proj.mass,proj.calibre)
+
+hits = []
+nfrs = 0.0
+    
+for i=1:N
+     cant = x1[i]+x2[i] 
+     crossW = xcross[i]
+     rangeW=xrange[i]
+     ρtarget = xtarget[i]
+     mvel = xvel[i] 
+     temp = xtemp[i]
+     tank.hull.Φ = cant
+     w.cross = crossW
+     w.range = rangeW
+     #t.ρ = ρtarget
+     t.position = targetPos(t, tank)
+     #weapon.u₀ = mvel
+     proj.velocity=muzzleVel(tank)
+     proj.position=muzzlePos(tank)
+     #atmosphere.t = temp
+     windIn = wind(tank, w)
+    # impactP, impactV, tof, αₑ,spin,rounds= trajectoryMPMM(proj, t, weapon,aero)
+    variable_bias = [0.0,rand(Normal(0.0,linError["jump"].vertical)),rand(Normal(0.0,linError["jump"].horizontal))]+
+    [0.0,rand(Normal(0.0,linError["fireControl"].vertical)),rand(Normal(0.0,linError["fireControl"].horizontal))]+
+    [0.0,rand(Normal(0.0,linError["boresight"].vertical)),rand(Normal(0.0,linError["boresight"].horizontal))]+
+    [0.0,rand(Normal(0.0,linError["optical"].vertical)),rand(Normal(0.0,linError["optical"].horizontal))]
+    
+    radom_err =[0.0,rand(Normal(0.0,linError["dispers"].vertical)),rand(Normal(0.0,linError["dispers"].horizontal))] 
+ 
+    detP, detV, detTof, detαₑ,detSpin,detRounds= trajectoryMPMM(proj, t, weapon,aero,tf =fuze,w_bar =windIn)
+    #println(i, "\t", ρtarget, "\t", norm(impactV), "\t", tof, "\t", rounds/(2*pi), "\t", mvel)
+ 
+    abm.position = detP+[0.0,linError["fixedBias"].vertical,linError["fixedBias"].horizontal] +variable_bias + radom_err
+    abm.velocity = detV
+    abm.αₑ = detαₑ
+    abm.spin = detSpin
+    fragments = frag(abm, zones,shapes)
+ 
+    frs,rays = raytracing(fragments)
+ 
+    #tVulnerable = targetPosition(tVulnerable,t.position)#Vulnerability.target(t,0.5,0.5,0.5)
+    tVulnerable = Vulnerability.target(t,0.5,0.5,0.5)
+ 
+    hit,shots = shotlines(tVulnerable,rays)
+    nfrs = length(frs)
+ 
+    #println(i, "\t", hit, "\t", length(frs))
+    push!(hits,hit)
+   
+    #toto = Dict(zip(rays,frs))
+ 
+    #get(toto,shots[1],"no hit")
+ 
+ 
+ 
+ 
+    #@show tof
+ end
+ 
+ phit = length(hits[hits .>= (nfrs*p/100)])/N
+
+ return phit
+ 
+end 

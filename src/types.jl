@@ -47,8 +47,9 @@ defines a target
     θ″::Float64
     ϕ″::Float64
     type::String
+    size::Union{Vector{Float64},Nothing}
   function Target(θ::Float64, ϕ::Float64)
-      new(0.0, 0.0,θ,ϕ,0.0,0.0,0.0,0.0,0.0,0.0,"unkown")
+      new(0.0, 0.0,θ,ϕ,0.0,0.0,0.0,0.0,0.0,0.0,"unkown",nothing)
   end
 end
 
