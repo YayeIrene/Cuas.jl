@@ -21,124 +21,67 @@ function lead(target::AbstractTarget, Δt::Float64)
     return ρ,θ,ϕ
 end 
 
+function lead(target::Uav,Δt::Float64)
+    x = target.position[1] + target.velocity[1]*Δt
+    y = target.position[2] + target.velocity[2]*Δt
+    z = target.position[3] + target.velocity[3]*Δt
+    return x,y,z
+end
+
+
 @resumable function fly!(sim::Simulation,target::AbstractTarget,Δt::Float64)
 
-    while target.ρ > 0
+    while target.ρ > 0 && target.alive
          @yield timeout(sim, Δt)
         target.ρ = target.ρ - target.ρ′*Δt
         target.θ = target.θ + target.θ′*Δt
         target.ϕ = target.ϕ + target.ϕ′*Δt
         println("target position ", " ",target.ρ)
 
+    end
+end
+
+
+@resumable function fly!(sim::Simulation,target::Uav,Δt::Float64)
+
+    while target.ρ > 0 && target.alive
+         @yield timeout(sim, Δt)
+        target.position[1] = target.position[1] + target.velocity[1]*Δt
+        target.position[2] = target.position[2] + target.velocity[2]*Δt
+        target.position[3] = target.position[3] + target.velocity[3]*Δt
+        println("target position ", " ",target.position)
 
     end
 end
 
-@resumable function shoot(sim::Simulation,target::AbstractTarget, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
-    Δ_fireControl::Float64, Δ_fireDemand::Float64, Δ_fireDelay::Float64, Δ_shotExit::Float64,
-    zones::ZoneList, shapes::Array{FragShapes,1}, 
-    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict;w = Wind(0.0,0.0), deltaR=5, N=100,p=1)
-    Pnhit=1.0
-    burst=0
-    t = ExternalBallistics.createTarget() #creates ExternalBallistics target
-    weapon = createGun(tank.canon.u₀,tank.latitude,tank.canon.θ,tank.turret.ξ,tank.canon.twist)
-    weapon.lw = tank.canon.lw
-    weapon.X2w = tank.rWY
-    weapon.QE = tank.canon.θ #updates the canon
-     weapon.AZ = tank.turret.ξ
-    # t.position = targetPos(t, tank)
-   while target.ρ > 0 && (1-Pnhit) < 0.95
-    @yield timeout(sim, Δ_fireControl)
-     println("Fire Control solution for target"," ", now(sim))
-     proj.position=muzzlePos(tank)
-     proj.velocity=muzzleVel(tank)
-     weapon.QE = tank.canon.θ
-     weapon.AZ = tank.turret.ξ
-     t.ρ = target.ρ
-     t.position = targetPos(t, tank) 
-     #QE,AZ=QEfinderMPMM!(target, proj, weapon,aero)
-     adjustedFire!(t, proj, weapon,aero,tank)
-     #println("ballistic correction", " ", QE, " ", AZ)
-      #println("tank ballistic correction", " ", tank.canon.θ, " ", tank.turret.ξ)
-      #println("weapon ballistic correction", " ", weapon.QE, " ", weapon.AZ)
+@resumable function fly!(sim::Simulation,target::Uav, tank::Tank,Δt::Float64)
+    #target.ρ = norm(target.position-tank.position)
+    aiming!(target,tank)
+    #engagementCart= target.position-tank.position
+    #engagementSph  = SphericalFromCartesian()([engagementCart[1],-engagementCart[3],engagementCart[2]])
+    #target.θ = rad2deg(90.0-engagementSph.ϕ)
+    #target.ϕ = rad2deg(engagementSph.θ)
 
-     #tank.canon.θ = QE
-     #tank.turret.ξ = AZ
+    #target.ρ = engagementSph.r
 
-     #weapon.QE = QE
-     #weapon.AZ = AZ
-     proj.position=muzzlePos(tank)
-     proj.velocity=muzzleVel(tank)
-     tof,αₑ,spin,rounds = trajectoryMPMM(proj, t, weapon,aero)[3:6]
+    while target.ρ > 0 && target.alive
+         @yield timeout(sim, Δt)
+        target.position[1] = target.position[1] + target.velocity[1]*Δt
+        target.position[2] = target.position[2] + target.velocity[2]*Δt
+        target.position[3] = target.position[3] + target.velocity[3]*Δt
+        #target.ρ = norm(target.position-tank.position)
+        aiming!(target,tank)
+        #engagementCart= target.position-tank.position
+        #engagementSph  = SphericalFromCartesian()([engagementCart[1],-engagementCart[3],engagementCart[2]])
+        #target.θ = rad2deg(90.0-engagementSph.ϕ)
+        #target.ϕ = rad2deg(engagementSph.θ)
 
-     t.ρ,  tank.sight.θ, tank.sight.ξ  = lead(target, tof) # computes the lead angle
-     tank.canon.θ = tank.sight.θ #moves the canon to the lead angle
-     tank.turret.ξ = tank.sight.ξ 
-     #target.position = targetPos(target, tank) # computes the new target position
-     #t.ρ = target.ρ
-     t.position = targetPos(t, tank)
+        #target.ρ = engagementSph.r
+        println("target position ", " ",target.ρ)
 
-     proj.position=muzzlePos(tank) #updates muzzle position
-     proj.velocity=muzzleVel(tank) #updates muzzle velocity
-     weapon.QE = tank.canon.θ #updates the canon
-     weapon.AZ = tank.turret.ξ
-     #QE,AZ=QEfinderMPMM!(target, proj, weapon,aero)
-     adjustedFire!(t, proj, weapon,aero,tank) # adjust for the lead angle
-
-     println("lead angle", " ", weapon.QE, " ", weapon.AZ)
-
-     #QE,AZ=QEfinderMPMM!(t, proj, weapon,aero)    
-
-
-
-     @yield timeout(sim, Δ_fireDemand)
-     println("Fire at target !"," ", now(sim))
-
-     @yield timeout(sim, Δ_fireDelay)
-     println("firing delay for target"," ", now(sim))
-
-     @yield timeout(sim, Δ_shotExit)
-     println("Shot exit"," ", now(sim))
-     if target.ρ <10
-        break 
-     end 
-     
-     #tf = rounds-20# 0.048995 #timefuze
-
-
-     #impactP, impactV, tof, αₑ,spin = trajectoryMPMM(proj, target, weapon,aero, tspan=(0,tof-tf))
-     fuze =  rounds/(2*pi)-deltaR#5#10#2000
-     println("fuze set to ", " ", fuze, " "," rounds")
-     impactP, impactV, tof, αₑ,spin,rounds = trajectoryMPMM(proj, t, weapon,aero, tf =fuze)
-
-     fixed_bias, variable_bias, random_err=dispersion(t,tank, proj, aero,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w,N=N)
-
-      #target.ρ= track.ρ
-     ϵ = SpheError(variable_bias.range,sqrt(variable_bias.vertical^2+random_err.vertical^2),sqrt(variable_bias.horizontal^2+random_err.horizontal^2),0.0,fixed_bias.vertical,fixed_bias.horizontal)
-     #ϵ = SpheError(0.0,sqrt(variable_bias.vertical^2+random_err.vertical^2),sqrt(variable_bias.horizontal^2+random_err.horizontal^2),0.0,fixed_bias.vertical,fixed_bias.horizontal)
-     #sshp = SSHP(target,ϵ)
-     #tVulnerable = Vulnerability.target(t,0.5,0.5,0.5)
-     sshp = sshpAbm(tank,t, proj, fuze,target.size,aero,zones,shapes,ϵ,p=p,N=N)[1]
-     Pnhit=Pnhit*(1-sshp)
-     burst=burst+1
-     println("Hit probability is"," ", sshp)
-
-     @yield timeout(sim, tof)
-     println("Target strike"," ", now(sim))
-     #targetPosition!(target,now(sim))
-    
+    end
 end
-Phit = (1-Pnhit)
-if target.ρ >0
-    println("Target position at hit"," ", target.ρ)
-    println("Hit probability is"," ", Phit)
-    println("burst length is", " ", burst)
-else
-    println("Hit probability is"," ", Phit)
-    println("burst length is", " ", burst)
-   println("Target missed!")
-end
-end 
+
 #=
 """
     acquisition(sim,target, tank, proj, aero,fixedError,varibleErrorIn,variableErrorOut,randomError,zones, shapes; optional arguments)
@@ -213,8 +156,366 @@ end
     tank.sight.ξ = target.ϕ
     
 
-    @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
     zones, shapes,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w,deltaR=deltaR, N=N,p=p)     
+
+    @yield timeout(sim, 2.0)
+    println("Target damage assessment"," ", now(sim))
+
+    @yield timeout(sim, 1.0)
+    println("Reengage Target?"," ", now(sim))
+
+
+    #@yield release(bcs) # customer exits service
+    println("Next target : ", now(sim))
+
+end
+
+@resumable function acquisition(sim::Simulation,target::AbstractTarget, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
+    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict,
+    zones::ZoneList, fuze::Fuze;
+    Δt_fireCommand = 1.0, Δ_slew = 2.0, Δ_aim = 2.0, Δ_range= 0.0,
+    Δ_fireControl = 1.0, Δ_fireDemand = 0.0, Δ_fireDelay = 0.0, Δ_shotExit = 1.0,
+    w = Wind(0.0,0.0),deltaR=5, N=100,p=1)
+
+    #weapon = createGun(u₀,latitude,canon.θ,tourelle.ξ,tc)
+    #weapon.lw = canon.lw
+    #weapon.X2w = tank.rWY
+    #weapon.QE = tank.canon.θ #updates the canon
+     #weapon.AZ = tank.turret.ξ
+
+    #@yield timeout(sim, Δt_fireCommand)
+    println("Fire at target ")
+  
+    println("Target position at fire command"," ", target.ρ)
+
+
+    @process fly!(sim,target,1.0)
+
+    @yield timeout(sim, Δ_slew)
+    println("Slew weapon at target"," ", now(sim))
+    tank.turret.ξ = target.ϕ
+    
+
+    #@yield timeout(sim, Δ_aim)
+    #println("Aim at target $id"," ", now(sim))
+    tank.canon.θ = target.θ
+
+
+
+    @yield timeout(sim, Δ_range)
+    println("Range at target"," ", now(sim))
+   
+    tank.sight.θ = target.θ
+    tank.sight.ξ = target.ϕ
+    
+
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    zones, fuze,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w, N=N)     
+
+    @yield timeout(sim, 2.0)
+    println("Target damage assessment"," ", now(sim))
+
+    @yield timeout(sim, 1.0)
+    println("Reengage Target?"," ", now(sim))
+
+
+    #@yield release(bcs) # customer exits service
+    println("Next target : ", now(sim))
+
+end
+
+#Multiple
+@resumable function acquisition(sim::Simulation,target::AbstractTarget, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
+    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict,
+    zones::ZoneList, fuze::Fuze, targetsList::Vector{Tuple{Float64, Float64}};
+    Δt_fireCommand = 1.0, Δ_slew = 2.0, Δ_aim = 2.0, Δ_range= 0.0,
+    Δ_fireControl = 1.0, Δ_fireDemand = 0.0, Δ_fireDelay = 0.0, Δ_shotExit = 1.0,
+    w = Wind(0.0,0.0),deltaR=5, N=100,p=1)
+
+    #weapon = createGun(u₀,latitude,canon.θ,tourelle.ξ,tc)
+    #weapon.lw = canon.lw
+    #weapon.X2w = tank.rWY
+    #weapon.QE = tank.canon.θ #updates the canon
+     #weapon.AZ = tank.turret.ξ
+
+    #@yield timeout(sim, Δt_fireCommand)
+    println("Fire at target ")
+  
+    println("Target position at fire command"," ", target.ρ)
+
+
+    @process fly!(sim,target,1.0)
+
+    @yield timeout(sim, Δ_slew)
+    println("Slew weapon at target"," ", now(sim))
+    tank.turret.ξ = target.ϕ
+    
+
+    #@yield timeout(sim, Δ_aim)
+    #println("Aim at target $id"," ", now(sim))
+    tank.canon.θ = target.θ
+
+
+
+    @yield timeout(sim, Δ_range)
+    println("Range at target"," ", now(sim))
+   
+    tank.sight.θ = target.θ
+    tank.sight.ξ = target.ϕ
+    
+
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    zones, fuze,targetsList,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w, N=N)     
+
+    @yield timeout(sim, 2.0)
+    println("Target damage assessment"," ", now(sim))
+
+    @yield timeout(sim, 1.0)
+    println("Reengage Target?"," ", now(sim))
+
+
+    #@yield release(bcs) # customer exits service
+    println("Next target : ", now(sim))
+
+end
+
+#For a burst
+@resumable function acquisition(sim::Simulation,target::AbstractTarget, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
+    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict,
+    zones::ZoneList, fuze::Fuze, n::Int64;
+    Δt_fireCommand = 1.0, Δ_slew = 2.0, Δ_aim = 2.0, Δ_range= 0.0,
+    Δ_fireControl = 1.0, Δ_fireDemand = 0.0, Δ_fireDelay = 0.0, Δ_shotExit = 1.0,
+    w = Wind(0.0,0.0),deltaR=5, N=100,p=1)
+
+    #weapon = createGun(u₀,latitude,canon.θ,tourelle.ξ,tc)
+    #weapon.lw = canon.lw
+    #weapon.X2w = tank.rWY
+    #weapon.QE = tank.canon.θ #updates the canon
+     #weapon.AZ = tank.turret.ξ
+
+    #@yield timeout(sim, Δt_fireCommand)
+    println("Fire at target ")
+  
+    println("Target position at fire command"," ", target.ρ)
+
+
+    @process fly!(sim,target,1.0)
+
+    @yield timeout(sim, Δ_slew)
+    println("Slew weapon at target"," ", now(sim))
+    tank.turret.ξ = target.ϕ
+    
+
+    #@yield timeout(sim, Δ_aim)
+    #println("Aim at target $id"," ", now(sim))
+    tank.canon.θ = target.θ
+
+
+
+    @yield timeout(sim, Δ_range)
+    println("Range at target"," ", now(sim))
+   
+    tank.sight.θ = target.θ
+    tank.sight.ξ = target.ϕ
+    
+
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    zones, fuze,n,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w, N=N)     
+
+    @yield timeout(sim, 2.0)
+    println("Target damage assessment"," ", now(sim))
+
+    @yield timeout(sim, 1.0)
+    println("Reengage Target?"," ", now(sim))
+
+
+    #@yield release(bcs) # customer exits service
+    println("Next target : ", now(sim))
+
+end
+
+@resumable function advance!(sim::Simulation,tank::Tank, target::AbstractTarget, Δt::Float64)
+  
+    while target.alive
+        @yield timeout(sim, Δt)
+        tank.position[1] = tank.position[1] +  tank.velocity[1]*Δt
+        tank.position[2] = tank.position[2] +  tank.velocity[2]*Δt
+        tank.position[3] = tank.position[3] +  tank.velocity[3]*Δt
+       println("tank position ", " ",tank.position)
+
+   end
+    
+    
+end 
+
+function aiming!(target::Uav,tank::Tank)
+    los= target.position-tank.position
+    aimpoint  = SphericalFromCartesian()([los[1],-los[3],los[2]])
+    target.θ = rad2deg(aimpoint.ϕ)
+    target.ϕ = rad2deg(aimpoint.θ)
+    target.ρ = aimpoint.r
+end 
+
+#For a burst Multiple
+@resumable function acquisition(sim::Simulation,target::AbstractTarget, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
+    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict,
+    zones::ZoneList, fuze::Fuze, n::Int64,  targetsList::Vector{Tuple{Float64, Float64}};
+    Δt_fireCommand = 1.0, Δ_slew = 2.0, Δ_aim = 2.0, Δ_range= 0.0,
+    Δ_fireControl = 1.0, Δ_fireDemand = 0.0, Δ_fireDelay = 0.0, Δ_shotExit = 1.0,
+    w = Wind(0.0,0.0),deltaR=5, N=100,p=1)
+
+    #weapon = createGun(u₀,latitude,canon.θ,tourelle.ξ,tc)
+    #weapon.lw = canon.lw
+    #weapon.X2w = tank.rWY
+    #weapon.QE = tank.canon.θ #updates the canon
+     #weapon.AZ = tank.turret.ξ
+
+    #@yield timeout(sim, Δt_fireCommand)
+    println("Fire at target ")
+  
+    println("Target position at fire command"," ", target.ρ)
+
+
+    @process fly!(sim,target,1.0)
+
+    @yield timeout(sim, Δ_slew)
+    println("Slew weapon at target"," ", now(sim))
+    tank.turret.ξ = target.ϕ
+    
+
+    #@yield timeout(sim, Δ_aim)
+    #println("Aim at target $id"," ", now(sim))
+    tank.canon.θ = target.θ
+
+
+
+    @yield timeout(sim, Δ_range)
+    println("Range at target"," ", now(sim))
+   
+    tank.sight.θ = target.θ
+    tank.sight.ξ = target.ϕ
+    
+
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    zones, fuze,n,targetsList,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w, N=N)     
+
+    @yield timeout(sim, 2.0)
+    println("Target damage assessment"," ", now(sim))
+
+    @yield timeout(sim, 1.0)
+    println("Reengage Target?"," ", now(sim))
+
+
+    #@yield release(bcs) # customer exits service
+    println("Next target : ", now(sim))
+
+end
+
+#--------------------------------------------------------------------------------------------------------------------
+
+#For a burst Multiple Mobile/Mobile
+@resumable function acquisition(sim::Simulation,target::Uav, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
+    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict,
+    zones::ZoneList, fuze::Fuze, n::Int64,  targetsList::Vector{Tuple{Float64, Float64}};
+    Δt_fireCommand = 1.0, Δ_slew = 2.0, Δ_aim = 2.0, Δ_range= 0.0,
+    Δ_fireControl = 1.0, Δ_fireDemand = 0.0, Δ_fireDelay = 0.0, Δ_shotExit = 1.0,
+    w = Wind(0.0,0.0),deltaR=5, N=100,p=1)
+
+    println("Fire at target ")
+  
+    println("Target position at fire command"," ", target.ρ)
+    println("Tank position at fire command", " ", tank.position)
+
+
+    @process fly!(sim,target,1.0)
+    @process advance!(sim,tank, target, 1.0)
+
+    @yield timeout(sim, Δ_slew)
+    println("Slew weapon at target"," ", now(sim))
+    #engagementCart= target.position-tank.position
+    #engagementSph  = SphericalFromCartesian()([engagementCart[1],-engagementCart[3],engagementCart[2]])
+    #target.θ = rad2deg(90.0-engagementSph.ϕ)
+    #target.ϕ = rad2deg(engagementSph.θ)
+    #target.ρ = engagementSph.ρ
+
+
+    tank.turret.ξ = target.ϕ
+    
+
+    #@yield timeout(sim, Δ_aim)
+    #println("Aim at target $id"," ", now(sim))
+    tank.canon.θ = target.θ
+
+
+
+    @yield timeout(sim, Δ_range)
+    println("Range at target"," ", now(sim))
+   
+    tank.sight.θ = target.θ
+    tank.sight.ξ = target.ϕ
+    
+
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    zones, fuze,n,targetsList,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w, N=N)     
+
+    @yield timeout(sim, 2.0)
+    println("Target damage assessment"," ", now(sim))
+
+    @yield timeout(sim, 1.0)
+    println("Reengage Target?"," ", now(sim))
+
+
+    #@yield release(bcs) # customer exits service
+    println("Next target : ", now(sim))
+
+end
+
+#Mobile/mobile
+@resumable function acquisition(sim::Simulation,target::Uav, tank::Tank, proj::AbstractPenetrator, aero::DataFrame,
+    fixedError::Dict,varibleErrorIn::Dict,variableErrorOut::Dict,randomError::Dict,
+    zones::ZoneList, fuze::Fuze, n::Int64;
+    Δt_fireCommand = 1.0, Δ_slew = 2.0, Δ_aim = 2.0, Δ_range= 0.0,
+    Δ_fireControl = 1.0, Δ_fireDemand = 0.0, Δ_fireDelay = 0.0, Δ_shotExit = 1.0,
+    w = Wind(0.0,0.0),deltaR=5, N=100,p=1)
+
+    
+    println("Fire at target ")
+  
+    println("Target position at fire command"," ", target.ρ)
+    println("Tank position at fire command", " ", tank.position)
+
+
+    @process fly!(sim,target,1.0)
+    @process advance!(sim,tank, target, 1.0)
+
+    @yield timeout(sim, Δ_slew)
+    println("Slew weapon at target"," ", now(sim))
+    #engagementCart= target.position-tank.position
+    #engagementSph  = SphericalFromCartesian()([engagementCart[1],-engagementCart[3],engagementCart[2]])
+    #target.θ = rad2deg(90.0-engagementSph.ϕ)
+    #target.ϕ = rad2deg(engagementSph.θ)
+    #target.ρ = engagementSph.ρ
+
+
+    tank.turret.ξ = target.ϕ
+    
+
+    #@yield timeout(sim, Δ_aim)
+    #println("Aim at target $id"," ", now(sim))
+    tank.canon.θ = target.θ
+
+
+
+    @yield timeout(sim, Δ_range)
+    println("Range at target"," ", now(sim))
+   
+    tank.sight.θ = target.θ
+    tank.sight.ξ = target.ϕ
+    
+
+    @yield @process shoot(sim,target,tank, proj, aero,Δ_fireControl, Δ_fireDemand, Δ_fireDelay, Δ_shotExit,
+    zones, fuze,n,fixedError,varibleErrorIn,variableErrorOut,randomError,w=w, N=N)     
 
     @yield timeout(sim, 2.0)
     println("Target damage assessment"," ", now(sim))

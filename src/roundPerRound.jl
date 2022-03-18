@@ -538,12 +538,12 @@ function dispersion(target::AbstractTarget, tank::Tank, proj::AbstractPenetrator
     σfbv = fixedError["vertical"](target.ρ)*1e-3*0.981719*target.ρ#interTable(fixed_bias_range,fixed_bias_vertical,target.ρ)
 
     σcantR,σcantV, σcantH=cantError(variableErrorIn["cant"], target,proj,weapon,tank,aero,N=N)[1:3]
-    println("cant error", " ", σcantV, " ", σcantH)
+    #println("cant error", " ", σcantV, " ", σcantH)
 
     σcrossₜ,σcrossV,σcrossR= windCrossError(variableErrorIn["crossWind"],w,tank,weapon, proj, target, aero,N=N)[1:3]#.σ #m
-    println("cross wind error", " ", σcrossₜ.σ)
+    #println("cross wind error", " ", σcrossₜ.σ)
     σrangeₜ,σrangeH, σrangeR=windRangeError(variableErrorIn["rangeWind"],w,tank,weapon, proj, target, aero,N=N)[1:3]#.σ #m
-    println("range wind error", " ", σrangeₜ.σ)
+    #println("range wind error", " ", σrangeₜ.σ)
     
 
     σjh=variableErrorOut["jumpH"](target.ρ)*1e-3*0.981719*target.ρ#interTable(rangeJ,jumpH,target.ρ)*1e-3*0.981719*target.ρ
@@ -556,18 +556,18 @@ function dispersion(target::AbstractTarget, tank::Tank, proj::AbstractPenetrator
     σboresightV= variableErrorOut["boresightV"](target.ρ)*1e-3*0.981719*target.ρ#boresight_retention_vertical*1e-3*0.981719*target.ρ
 
     #dQE,dAZ=rangeError(target,range_std,tank, weapon, proj, aero)
-    σrR,σrV, σrH=rangeError(target,variableErrorIn["range"],tank, weapon, proj, aero,N=N) #parallax compensation not done
+    σrR,σrV, σrH=rangeError(target,variableErrorIn["range"],tank, weapon, proj, aero,N=N)[1:3] #parallax compensation not done
     #println("range error computed")
 
     #σrEl,σvEl, σhEl = elevationError(dQE.σ, target,proj,weapon,tank,aero)[1:3]
     #σrAz,σvAz, σhAz = azimuthError(dAZ.σ, target,proj,weapon,tank,aero)[1:3]
-    println("range error", " ", σrR, " ", σrV, " ", σrH) 
+    #println("range error", " ", σrR, " ", σrV, " ", σrH) 
 
     σMVr, σMVvₜ, σMVhₜ = muzzleVelError(variableErrorIn["muzzleVelocity"], target,proj,weapon,tank,aero,N=N)[1:3]
-    println("muzzle velocity error", " ", σMVvₜ, " ", σMVhₜ)
+    #println("muzzle velocity error", " ", σMVvₜ, " ", σMVhₜ)
 
     σtempR,σtempV, σtempH = temperatureError(variableErrorIn["temperature"], target,proj,weapon,tank,aero,atmosphere,N=N)[1:3]
-    println("temperature error", " ", σtempV, " ", σtempH)
+    #println("temperature error", " ", σtempV, " ", σtempH)
 
     #σopth = optical_path_bending
     #σoptv = optical_path_bending
@@ -596,4 +596,57 @@ function dispersion(target::AbstractTarget, tank::Tank, proj::AbstractPenetrator
     random_err = Error(σdisph,σdispv)
     return fixed_bias, variable_bias, random_err
 
+end 
+
+function sshpAbm(tank::Tank,t::AbstractTarget, detFuze::AbstractTarget, proj::AbstractPenetrator,
+    aero::DataFrame,zones::ZoneList,ϵ::SpheError;N=100)
+    weapon = createGun(tank.canon.u₀,tank.latitude,tank.canon.θ,tank.turret.ξ,tank.canon.twist)
+    weapon.lw = tank.canon.lw
+    weapon.X2w = tank.rWY
+    weapon.QE = tank.canon.θ #updates the canon
+     weapon.AZ = tank.turret.ξ
+    
+#for i=1:N
+RLos = angle_to_dcm(0, -deg2rad(tank.sight.θ), deg2rad(tank.sight.ξ), :XZY)
+abm = createProjectile(proj.mass,proj.calibre)
+hits = []
+nfrs = 0.0
+det = [] 
+#detonation = deepcopy(t)
+#detonation.position = t.position - [offset,height,0.0]
+    detP, detV, detTof, detαₑ,detSpin,detRounds= trajectoryMPMM(proj, detFuze, weapon,aero)
+    #println(i, "\t", ρtarget, "\t", norm(impactV), "\t", tof, "\t", rounds/(2*pi), "\t", mvel)
+    detP = inv(RLos)*detP
+ for i=1:N
+    abm.position = detP+[ϵ.μ_x,ϵ.μ_y,ϵ.μ_z] +[rand(Normal(0.0,ϵ.σ_x)),rand(Normal(0.0,ϵ.σ_y)), rand(Normal(0.0,ϵ.σ_z))]
+    abm.position = RLos* abm.position
+
+    abm.velocity = detV
+    abm.αₑ = detαₑ
+    abm.spin = detSpin
+    #fragments = frag(abm, zones,shapes)
+ 
+    #frs,rays = raytracing(fragments)
+ 
+    #tVulnerable = targetPosition(tVulnerable,t.position)#Vulnerability.target(t,0.5,0.5,0.5)
+    
+ 
+    #hit,shots = shotlines(tVulnerable,rays)
+    #nfrs = length(frs)
+ 
+    #println(i, "\t", hit, "\t", length(frs))
+    impacts = hit(zones,abm,t)
+    if true in impacts
+    push!(hits,true)
+    end 
+    push!(det,abm.position)
+   
+    
+ end
+ 
+ #phit = length(hits[hits .>= (nfrs*p/100)])/N
+ phit = length(hits)/N
+
+ return phit,det
+ 
 end 
