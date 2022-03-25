@@ -23,6 +23,9 @@ end
 Creates an object projectile with mass (kg), calibre (m).
 optional arguments are: position, velocity, time of flight, moment of inertia, distance to the center of gravity.
 """
-function createProjectile(mass::Float64, calibre::Float64; position=nothing, velocity =nothing, tof =nothing, Ix=nothing, Iy = nothing, Xcg=nothing)
-    Projectile(mass, calibre, position, velocity, tof, Ix,Iy, Xcg)
+function createProjectile(mass::Float64, calibre::Float64; position=nothing, velocity =nothing, tof =nothing, Ix=nothing, Iy = nothing, Xcg=nothing, spin=nothing, αₑ=nothing)
+    Projectile(mass, calibre, position, velocity, tof, Ix,Iy, Xcg, spin, αₑ)
 end
+
+
+
